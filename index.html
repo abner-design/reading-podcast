@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>喜閱龍的圖書館奇遇 - 國小好書推薦與 Podcast 講稿平台 (GitHub Pages 版)</title>
+  <title>喜閱龍的圖書館奇遇 - 國小好書推薦與 Podcast 講稿平台</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="images/reading-dragon.png" type="image/png">
 </head>
@@ -31,7 +31,7 @@
           <div class="switch-pill"></div>
         </div>
 
-        <!-- 平台模式分頁 (含教師鎖定圖示) -->
+        <!-- 平台模式分頁 -->
         <nav class="tab-nav">
           <button class="tab-btn active" data-tab="recommendTab" id="tabBtnRecommend">
             🎈 我要推薦好書
@@ -146,19 +146,6 @@
               <input type="text" id="studentMessage" class="input-field" placeholder="例如：希望喜閱龍在大樹哥哥的節目上念出我的推薦信！">
             </div>
 
-            <!-- 注音符號輔助小工具 (可展開) -->
-            <div class="zhuyin-assistant-box">
-              <div class="assistant-header" id="assistantToggle">
-                <span class="assistant-title">
-                  <span>⌨️</span> ㄅㄆㄇ 注音符號與聲調輔助盤 (點擊可插入)
-                </span>
-                <span id="assistantArrow">▼</span>
-              </div>
-              <div class="zhuyin-keypad" id="zhuyinKeypad" style="display: none;">
-                <!-- 由 JavaScript 產生注音鍵 -->
-              </div>
-            </div>
-
             <!-- 送出按鈕 -->
             <div class="submit-btn-box">
               <button type="submit" class="btn-primary" id="btnSubmitRecommendation">
@@ -221,18 +208,14 @@
         
         <!-- 左側：推薦信收件匣 (Inbox) -->
         <div class="card inbox-card-panel">
-          <div class="card-title" style="justify-content: space-between; flex-wrap: wrap;">
+          <h3 class="card-title" style="justify-content: space-between;">
             <span>📬 收到的小朋友推薦</span>
-            <div style="display: flex; gap: 6px;">
-              <button class="btn-action" id="btnExportData" title="匯出所有推薦信資料備份">💾 備份</button>
-              <button class="btn-action" id="btnImportData" title="匯入推薦信備份檔">📥 匯入</button>
-            </div>
-          </div>
+            <button class="btn-action" id="btnRefreshInbox" title="重新整理">🔄 重新整理</button>
+          </h3>
           <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 14px;">
-            點擊任一推薦信，即可一鍵套用《喜閱龍 3 分鐘廣播劇》SOP 自動生成 Podcast 講稿！
+            點擊推薦信，即可一鍵將學童心得以《喜閱龍 3 分鐘廣播劇》標準 SOP 生成專屬 Podcast 講稿！
           </p>
 
-          <input type="file" id="importFileInput" accept=".json" style="display: none;">
           <div class="inbox-list" id="inboxList">
             <!-- 由 JavaScript 動態渲染 -->
           </div>
@@ -254,11 +237,11 @@
               <button class="btn-action" id="btnAddScriptLine">➕ 新增對白句</button>
               <button class="btn-action" id="btnCopyMarkdown">📋 複製 Markdown</button>
               <button class="btn-action success" id="btnSaveScript">💾 講稿存檔</button>
-              <button class="btn-action warm" id="btnDownloadDocx" title="直接在瀏覽器生成並下載適合錄音者閱讀的 Word 格式講稿">
+              <button class="btn-action warm" id="btnDownloadDocx" title="下載適合錄音者閱讀的 Word 格式講稿">
                 📄 下載 Word (.docx)
               </button>
-              <button class="btn-action purple" id="btnDownloadPython" title="下載可直接用微軟 Edge-TTS 語音合成的 Python 程式碼">
-                🐍 下載 Python 腳本
+              <button class="btn-action primary" id="btnRunSynthesis" title="透過微軟神經網路語音合成 MP3">
+                🔊 語音合成試聽
               </button>
               <button class="btn-action" id="btnLockStudio" title="鎖定工作台並回到學生推薦模式" style="color: #92400e; background: #fef3c7;">
                 🔒 鎖定回到學生端
@@ -282,37 +265,40 @@
 
           <!-- 對白清單工作區 -->
           <div class="card">
-            <div style="font-size: 1.1rem; font-weight: 800; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <h4 style="font-size: 1.1rem; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
               <span>🎭 廣播劇對白腳本 (共 <span id="scriptLineCount">0</span> 句)</span>
               <span style="font-size: 0.82rem; color: #64748b; font-weight: normal;">
                 🌳大樹哥哥: zh-TW-YunJhe | 🦕喜閱龍: zh-TW-HsiaoYu
               </span>
-            </div>
+            </h4>
 
             <div class="script-lines-list" id="scriptLinesContainer">
               <!-- 由 JavaScript 動態生成對白行卡片 -->
             </div>
           </div>
 
-          <!-- 產出代碼檢視區 (自動折行，無左右拉條) -->
+          <!-- 匯出與合成預覽檢視區 -->
           <div class="output-tab-container">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-              <h4 style="font-size: 1rem; color: #334155;">📄 產出講稿即時檢視 (Markdown 講稿 ＆ Python 合成代碼)</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <h4 style="font-size: 1rem; color: #334155;">📄 正式產出預覽 (Markdown 講稿 ＆ Python 合成代碼)</h4>
               <div style="display: flex; gap: 8px;">
-                <button class="btn-action primary" id="btnToggleMdPreview">Markdown 講稿</button>
-                <button class="btn-action" id="btnTogglePyPreview">Python 代碼</button>
+                <button class="btn-action" id="btnToggleMdPreview">Markdown 講稿</button>
+                <button class="btn-action" id="btnTogglePyPreview">Python 合成代碼</button>
               </div>
             </div>
-            <pre class="code-preview-block" id="codePreviewBlock">點擊上方「講稿存檔」或「一鍵轉換」後，此處將自動產生符合標準 SOP 的 Markdown 講稿與 Python 代碼。</pre>
+            <pre class="code-preview-block" id="codePreviewBlock">點擊上方「儲存講稿存檔」後，此處將自動產生符合標準 SOP 的 Markdown 講稿與 Python Edge-TTS 合成代碼。</pre>
           </div>
 
           <!-- 已存檔講稿清單 (Saved Archive) -->
           <div class="card">
-            <div style="font-size: 1.1rem; font-weight: 800; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <h4 style="font-size: 1.1rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
               <span>🗂️ 已存檔 Podcast 講稿庫</span>
-            </div>
+              <button class="btn-action" id="btnRefreshSavedScripts">🔄 重新整理清單</button>
+            </h4>
             <div id="savedScriptsList" style="display: flex; flex-direction: column; gap: 10px;">
-              <!-- 由 JavaScript 渲染 -->
+              <div style="font-size: 0.9rem; color: #94a3b8; text-align: center; padding: 20px;">
+                正在載入已存檔講稿...
+              </div>
             </div>
           </div>
 
@@ -354,17 +340,64 @@
     </div>
   </div>
 
+  <!-- ========================================== -->
+  <!-- 浮動注音符號小工具 (隨螢幕移動，手機/平板免上下滑動) -->
+  <!-- ========================================== -->
+  <div id="floatingZhuyinContainer" class="floating-zhuyin-container" style="display: none;">
+    <!-- 頂部列：切換目標欄位 + 倒退/空格/收合按鈕 -->
+    <div class="fzhuyin-header">
+      <div class="fzhuyin-target-wrap">
+        <span class="fzhuyin-target-tag">📍 輸入目標</span>
+        <div class="fzhuyin-field-pills" id="fzhuyinFieldPills">
+          <button type="button" class="fzhuyin-pill active" data-field="bookFeatures">🌟 特色</button>
+          <button type="button" class="fzhuyin-pill" data-field="bookTitle">📖 書名</button>
+          <button type="button" class="fzhuyin-pill" data-field="author">✍️ 作者</button>
+          <button type="button" class="fzhuyin-pill" data-field="favoriteQuote">💬 名句</button>
+          <button type="button" class="fzhuyin-pill" data-field="studentMessage">💌 留言</button>
+          <button type="button" class="fzhuyin-pill" data-field="studentName">👤 姓名</button>
+        </div>
+      </div>
+      <div class="fzhuyin-actions">
+        <button type="button" class="fzhuyin-action-btn" id="fzhuyinBackspaceBtn" title="倒退刪除一個字或符號">⌫ 倒退</button>
+        <button type="button" class="fzhuyin-action-btn" id="fzhuyinSpaceBtn" title="插入空格">␣ 空格</button>
+        <button type="button" class="fzhuyin-action-btn fzhuyin-close-btn" id="fzhuyinCloseBtn" title="收合注音工具">✕ 收合</button>
+      </div>
+    </div>
+
+    <!-- 即時鏡射文字列：解決孩子上下滑動痛點，邊打邊看 -->
+    <div class="fzhuyin-mirror-box">
+      <div class="fzhuyin-mirror-header">
+        <span class="mirror-field-name" id="fzhuyinCurrentFieldName">【這本書最有特色或吸引人的地方】</span>
+        <span class="mirror-hint">即時輸入預覽（免滑動）：</span>
+      </div>
+      <div class="fzhuyin-mirror-content" id="fzhuyinMirrorContent">
+        <span class="fzhuyin-placeholder">（點選下方注音符號即可直接輸入）</span>
+      </div>
+    </div>
+
+    <!-- 注音鍵盤區 (聲母、介音與韻母、聲調、常用標點) -->
+    <div class="fzhuyin-body">
+      <div class="fzhuyin-keypad" id="fzhuyinKeypad">
+        <!-- 由 JavaScript 動態生成按鍵 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 懸浮快捷按鈕 (FAB)：常駐畫面右下角，隨點隨開 -->
+  <button type="button" id="floatingZhuyinFab" class="floating-zhuyin-fab" title="點擊開啟/收合 ㄅㄆㄇ浮動注音鍵盤">
+    <span class="fab-icon">⌨️</span>
+    <span class="fab-text">ㄅㄆㄇ 注音工具</span>
+  </button>
+
   <!-- 浮動提示元件 (Toast) -->
   <div class="toast" id="toastBox">
     <span id="toastIcon">✨</span>
     <span id="toastMessage">操作成功</span>
   </div>
 
-  <!-- 引用外部函式庫 (均包含於本專案中，支援純前端與離線運作) -->
+  <!-- 引用外部函式庫 -->
   <script src="lib/pinyin-pro.js"></script>
   <script src="lib/zhuyin-engine.js"></script>
-  <script src="lib/docx.umd.js"></script>
-  <script src="lib/FileSaver.min.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
