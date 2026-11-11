@@ -826,11 +826,57 @@
   }
 
   // ==========================================
-  // 8. 推薦信收件匣渲染
+  // 8. 推薦信收件匣渲染與管理 (含移除與精確時間顯示)
   // ==========================================
+  function formatSubmissionTime(isoString) {
+    if (!isoString) return '時間未記錄';
+    try {
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return '時間未記錄';
+      const pad = (n) => String(n).padStart(2, '0');
+      const y = d.getFullYear();
+      const m = pad(d.getMonth() + 1);
+      const date = pad(d.getDate());
+      const h = pad(d.getHours());
+      const min = pad(d.getMinutes());
+      return `${y}/${m}/${date} ${h}:${min}`;
+    } catch (e) {
+      return '時間未記錄';
+    }
+  }
+
+  function removeSubmissionById(id) {
+    const idx = state.submissions.findIndex(s => s.id === id);
+    if (idx === -1) return;
+
+    const removedItem = state.submissions.splice(idx, 1)[0];
+    saveSubmissionsToStorage();
+
+    // 如果剛好移除的是當前被選取的推薦信，自動切換至第一筆或清空工作區
+    if (state.selectedSubmission && state.selectedSubmission.id === id) {
+      if (state.submissions.length > 0) {
+        selectSubmissionAndGenerate(state.submissions[0]);
+      } else {
+        state.selectedSubmission = null;
+        state.activeScriptLines = [];
+        if (dom.scriptEpisodeName) dom.scriptEpisodeName.value = '';
+        if (dom.scriptRecommenderInfo) dom.scriptRecommenderInfo.value = '';
+        if (typeof renderScriptLines === 'function') renderScriptLines();
+      }
+    }
+
+    renderInboxList();
+    showToast(`🗑️ 已移除《${escapeHtml(removedItem.bookTitle || '推薦信')}》`, 'info');
+  }
+
   function renderInboxList() {
     if (!dom.inboxList) return;
     dom.inboxList.innerHTML = '';
+
+    if (dom.inboxCountBadge) {
+      dom.inboxCountBadge.textContent = state.submissions.length;
+    }
+
     if (state.submissions.length === 0) {
       dom.inboxList.innerHTML = `
         <div style="text-align: center; color: #94a3b8; padding: 24px;">
@@ -844,25 +890,39 @@
       const card = document.createElement('div');
       card.className = `inbox-card ${state.selectedSubmission && state.selectedSubmission.id === item.id ? 'active' : ''}`;
       
-      const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleDateString('zh-TW', {
-        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-      }) : '';
+      const timeFormatted = formatSubmissionTime(item.timestamp);
 
       card.innerHTML = `
         <div class="inbox-card-header">
           <span class="inbox-student">👦 ${escapeHtml(item.gradeClass)} ${escapeHtml(item.studentName)}</span>
-          <span class="inbox-time">${timeStr}</span>
+          <span class="inbox-time-badge" title="後台收到推薦信時間">🕒 ${timeFormatted}</span>
         </div>
         <div class="inbox-book">《${escapeHtml(item.bookTitle)}》</div>
         <div class="inbox-features-snippet">
           ${escapeHtml(item.features || '無填寫特色')}
         </div>
-        <div style="margin-top: 8px; display: flex; justify-content: flex-end;">
-          <button class="btn-action primary" style="padding: 4px 10px; font-size: 0.8rem;" data-id="${item.id}">
+        <div class="inbox-card-actions">
+          <button type="button" class="btn-action danger btn-remove-sub" data-id="${item.id}" title="已完成錄音或不需要，點此從列表移除">
+            🗑️ 移除
+          </button>
+          <button type="button" class="btn-action primary btn-convert-sub" data-id="${item.id}">
             ⚡ 一鍵轉換成 Podcast 講稿
           </button>
         </div>
       `;
+
+      // 移除按鈕事件（停止冒泡，避免點擊移除時觸發卡片選取）
+      const btnRemove = card.querySelector('.btn-remove-sub');
+      if (btnRemove) {
+        btnRemove.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const student = item.studentName || '小讀者';
+          const book = item.bookTitle || '這本書';
+          if (confirm(`確定要移除「${student}」同學推薦的《${book}》推薦信嗎？\n\n（移除後可保持後台清爽，避免版面過多紛亂）`)) {
+            removeSubmissionById(item.id);
+          }
+        });
+      }
 
       card.addEventListener('click', () => {
         selectSubmissionAndGenerate(item);
