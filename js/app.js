@@ -20,7 +20,7 @@
       author: "角野榮子 / 繪者：佐佐木洋子",
       features: "故事超級幽默搞笑又很溫馨！每一隻動物小妖怪都有特別的怪癖和搞笑的弱點，而且插圖顏色好漂亮、表情超生動，讓人忍不住一口氣看完！",
       favoriteQuote: "最喜歡「洗乾淨小妖怪」偷偷把森林所有動物的衣服拿去河邊洗，結果大家穿上去通通縮水變小的那一段，真的笑到肚子痛！",
-      message: "喜閱龍和大樹哥哥好！我每天下課都會衝去圖書館看有沒有小妖怪的新書，希望喜閱龍在節目裡唸出我的推薦信，推薦給全校的小朋友！",
+      message: "喜閱龍好！我每天下課都會衝去圖書館看有沒有小妖怪的新書，希望喜閱龍在節目裡唸出我的推薦信，推薦給全校的小朋友！",
       timestamp: "2026-10-21T09:15:00.000Z"
     },
     {
@@ -31,7 +31,7 @@
       author: "廣嶋玲子 / 繪者：jyajya",
       features: "店老闆紅子賣的神奇零食都有一種神奇魔法，但如果不遵守食用說明書的規則，就會發生意想不到的驚險危機！故事懸疑又很有道理，教大家要心存善良與知足。",
       favoriteQuote: "「美人魚軟糖可以讓不會游泳的人變成游泳高手，但千萬不能吃太多，否則皮膚會長出魚鱗喔！」這段超刺激！",
-      message: "大樹哥哥和喜閱龍好！我和班上同學都搶著排隊借這本書，希望能在Podcast聽到大樹哥哥介紹錢天堂的神奇零食！",
+      message: "喜閱龍好！我和班上同學都搶著排隊借這本書，希望能在Podcast聽到喜閱龍介紹錢天堂的神奇零食！",
       timestamp: "2026-10-21T10:30:00.000Z"
     },
     {
@@ -42,7 +42,7 @@
       author: "工藤紀子",
       features: "野貓們每次都偷偷溜進汪汪老闆的店裡搞破壞，引發大爆炸後認真反省做麵包！又搞笑又可愛！",
       favoriteQuote: "「喵——！我們知道錯了！」這句台詞配上野貓們跪坐反省的表情超級無厘頭！",
-      message: "希望大樹哥哥和喜閱龍學野貓叫，一定超好笑！",
+      message: "希望喜閱龍學野貓叫，一定超好笑！",
       timestamp: "2026-10-21T11:20:00.000Z"
     }
   ];
@@ -242,7 +242,7 @@
       { id: 'lblAuthor', text: '書籍作者 / 繪者' },
       { id: 'lblBookFeatures', text: '這本書最大的特色是什麼？' },
       { id: 'lblFavoriteQuote', text: '你最喜歡的情節、角色或一句話？' },
-      { id: 'lblStudentMessage', text: '想對喜閱龍和大樹哥哥說的話 / 推薦原因' },
+      { id: 'lblStudentMessage', text: '想對喜閱龍說的話 / 推薦原因' },
       { id: 'btnSubmitText', text: '送出推薦信給喜閱龍' },
       { id: 'previewBadgeText', text: '✨ 即時注音預覽卡片' },
       { id: 'lblPreviewFeatures', text: '【書籍特色】' },
@@ -470,7 +470,7 @@
     'bookTitle': '推薦書籍名稱',
     'author': '書籍作者',
     'favoriteQuote': '書中最喜歡的一句話',
-    'studentMessage': '想對喜閱龍和大樹哥哥說的話',
+    'studentMessage': '想對喜閱龍說的話',
     'studentName': '推薦小達人姓名',
     'gradeClass': '年級與班級'
   };
@@ -779,7 +779,7 @@
     state.submissions.unshift(sub);
     saveSubmissionsToStorage();
 
-    showToast('🎉 太棒了！推薦信已送達喜閱龍與大樹哥哥！', 'success');
+    showToast('🎉 太棒了！推薦信已送達喜閱龍！', 'success');
     dom.recommendForm.reset();
     renderLivePreview();
     updateFloatingMirror();
