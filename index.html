@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>喜閱龍的圖書館奇遇 - 國小好書推薦與 Podcast 講稿平台</title>
+  <title>喜閱龍的圖書館奇遇 - 國小好書推薦與 Podcast 講稿平台 (GitHub Pages 版)</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="images/reading-dragon.png" type="image/png">
 </head>
@@ -31,13 +31,10 @@
           <div class="switch-pill"></div>
         </div>
 
-        <!-- 平台模式分頁 -->
+        <!-- 平台模式分頁 (學生推薦專用) -->
         <nav class="tab-nav">
-          <button class="tab-btn active" data-tab="recommendTab" id="tabBtnRecommend">
+          <button class="tab-btn active" data-tab="recommendTab" id="tabBtnRecommend" style="cursor: default;">
             🎈 我要推薦好書
-          </button>
-          <button class="tab-btn" data-tab="studioTab" id="tabBtnStudio">
-            <span id="studioLockIcon">🔒</span> 🎙️ Podcast 講稿工作台 <span class="badge" id="inboxCountBadge">0</span>
           </button>
         </nav>
       </div>
@@ -149,7 +146,7 @@
             <!-- 送出按鈕 -->
             <div class="submit-btn-box">
               <button type="submit" class="btn-primary" id="btnSubmitRecommendation">
-                <span>🚀</span> <span id="btnSubmitText">送出推薦信給喜閱龍與大樹哥哥</span>
+                <span>🚀</span> <span id="btnSubmitText">送出推薦信給喜閱龍</span>
               </button>
             </div>
           </form>
@@ -200,146 +197,18 @@
       </div>
     </section>
 
-    <!-- ──────────────────────────────────────────
-         分頁二：PODCAST 講稿工作台 (Studio Tab)
-         ────────────────────────────────────────── -->
-    <section class="tab-view" id="studioTab">
-      <div class="studio-grid">
-        
-        <!-- 左側：推薦信收件匣 (Inbox) -->
-        <div class="card inbox-card-panel">
-          <h3 class="card-title" style="justify-content: space-between;">
-            <span>📬 收到的小朋友推薦</span>
-            <button class="btn-action" id="btnRefreshInbox" title="重新整理">🔄 重新整理</button>
-          </h3>
-          <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 14px;">
-            點擊推薦信，即可一鍵將學童心得以《喜閱龍 3 分鐘廣播劇》標準 SOP 生成專屬 Podcast 講稿！
-          </p>
-
-          <div class="inbox-list" id="inboxList">
-            <!-- 由 JavaScript 動態渲染 -->
-          </div>
-        </div>
-
-        <!-- 右側：講稿編輯與存檔工作區 (Editor & Archive) -->
-        <div class="script-editor-container">
-          
-          <!-- 頂部工具列 -->
-          <div class="editor-toolbar">
-            <div class="toolbar-title-box">
-              <h3 id="currentEditorTitle">🎙️ Podcast 講稿編寫器</h3>
-              <p style="font-size: 0.82rem; color: #64748b;" id="currentEditorMeta">
-                依照《喜閱龍的3分鐘圖書館奇遇》SOP 規格自動對接
-              </p>
-            </div>
-
-            <div class="toolbar-actions">
-              <button class="btn-action" id="btnAddScriptLine">➕ 新增對白句</button>
-              <button class="btn-action" id="btnCopyMarkdown">📋 複製 Markdown</button>
-              <button class="btn-action success" id="btnSaveScript">💾 講稿存檔</button>
-              <button class="btn-action warm" id="btnDownloadDocx" title="下載適合錄音者閱讀的 Word 格式講稿">
-                📄 下載 Word (.docx)
-              </button>
-              <button class="btn-action primary" id="btnRunSynthesis" title="透過微軟神經網路語音合成 MP3">
-                🔊 語音合成試聽
-              </button>
-              <button class="btn-action" id="btnLockStudio" title="鎖定工作台並回到學生推薦模式" style="color: #92400e; background: #fef3c7;">
-                🔒 鎖定回到學生端
-              </button>
-            </div>
-          </div>
-
-          <!-- 集數與中繼資訊列 -->
-          <div class="card" style="padding: 16px 20px;">
-            <div class="form-row">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-size: 0.88rem;">集數編號與節目名稱</label>
-                <input type="text" id="scriptEpisodeName" class="input-field" value="喜閱龍_第一集_動物界的小妖怪">
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-size: 0.88rem;">小讀者推薦人資訊</label>
-                <input type="text" id="scriptRecommenderInfo" class="input-field" value="三年二班 林小晨小朋友">
-              </div>
-            </div>
-          </div>
-
-          <!-- 對白清單工作區 -->
-          <div class="card">
-            <h4 style="font-size: 1.1rem; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
-              <span>🎭 廣播劇對白腳本 (共 <span id="scriptLineCount">0</span> 句)</span>
-              <span style="font-size: 0.82rem; color: #64748b; font-weight: normal;">
-                🌳大樹哥哥: zh-TW-YunJhe | 🦕喜閱龍: zh-TW-HsiaoYu
-              </span>
-            </h4>
-
-            <div class="script-lines-list" id="scriptLinesContainer">
-              <!-- 由 JavaScript 動態生成對白行卡片 -->
-            </div>
-          </div>
-
-          <!-- 匯出與合成預覽檢視區 -->
-          <div class="output-tab-container">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-              <h4 style="font-size: 1rem; color: #334155;">📄 正式產出預覽 (Markdown 講稿 ＆ Python 合成代碼)</h4>
-              <div style="display: flex; gap: 8px;">
-                <button class="btn-action" id="btnToggleMdPreview">Markdown 講稿</button>
-                <button class="btn-action" id="btnTogglePyPreview">Python 合成代碼</button>
-              </div>
-            </div>
-            <pre class="code-preview-block" id="codePreviewBlock">點擊上方「儲存講稿存檔」後，此處將自動產生符合標準 SOP 的 Markdown 講稿與 Python Edge-TTS 合成代碼。</pre>
-          </div>
-
-          <!-- 已存檔講稿清單 (Saved Archive) -->
-          <div class="card">
-            <h4 style="font-size: 1.1rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-              <span>🗂️ 已存檔 Podcast 講稿庫</span>
-              <button class="btn-action" id="btnRefreshSavedScripts">🔄 重新整理清單</button>
-            </h4>
-            <div id="savedScriptsList" style="display: flex; flex-direction: column; gap: 10px;">
-              <div style="font-size: 0.9rem; color: #94a3b8; text-align: center; padding: 20px;">
-                正在載入已存檔講稿...
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
+          <!-- 頁尾宣告與教師工作台快速通道 -->
+    <footer style="text-align: center; padding: 24px 10px 40px; color: #94a3b8; font-size: 0.85rem;">
+      <p style="margin-bottom: 6px;">🏫 新北市龍埔國小 閱讀推廣系列 ｜ 《喜閱龍的3分鐘圖書館奇遇》</p>
+      <p>
+        <a href="teacher.html" style="color: #64748b; text-decoration: none; font-weight: 600; padding: 4px 12px; border-radius: 12px; background: #f1f5f9; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; gap: 4px;">
+          <span>🔒</span> 課研組教師專用工作台
+        </a>
+      </p>
+    </footer>
   </main>
 
   <!-- 教師工作台權限驗證彈窗 (避免學童誤入) -->
-  <div class="modal-overlay" id="teacherAuthModal" style="display: none;">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div class="modal-title">
-          <span>🔐</span> 教師專用工作台權限驗證
-        </div>
-        <button type="button" class="modal-close-btn" id="btnCancelAuth">✕</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size: 0.95rem; color: #475569; margin-bottom: 12px; line-height: 1.6;">
-          此工作台為<b>課研組教師與錄音製作團隊專用</b>。<br>
-          為避免學童在推薦好書時誤入或變更廣播劇講稿，請輸入教師通行密碼：
-        </p>
-        <div class="form-group" style="margin-bottom: 6px;">
-          <input type="password" id="teacherPasscodeInput" class="input-field" placeholder="請輸入通行密碼 (預設：115)" autofocus>
-          <div class="form-hint" style="color: #64748b; margin-top: 6px;">
-            💡 系統預設通行碼為 <b>115</b> (代表 115 課研組)
-          </div>
-        </div>
-        <div id="authErrorMsg" style="color: #ef4444; font-size: 0.88rem; font-weight: 700; display: none; margin-top: 8px;">
-          ⚠️ 密碼錯誤，請重新輸入！如需協助請洽課研組。
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-action" id="btnCancelAuth2">取消回到推薦專區</button>
-        <button type="button" class="btn-action primary" id="btnConfirmAuth">🔓 解鎖進入工作台</button>
-      </div>
-    </div>
-  </div>
-
   <!-- ========================================== -->
   <!-- 浮動注音符號小工具 (隨螢幕移動，手機/平板免上下滑動) -->
   <!-- ========================================== -->
@@ -395,9 +264,11 @@
     <span id="toastMessage">操作成功</span>
   </div>
 
-  <!-- 引用外部函式庫 -->
+  <!-- 引用外部函式庫 (均包含於本專案中，支援純前端與離線運作) -->
   <script src="lib/pinyin-pro.js"></script>
   <script src="lib/zhuyin-engine.js"></script>
+  <script src="lib/docx.umd.js"></script>
+  <script src="lib/FileSaver.min.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

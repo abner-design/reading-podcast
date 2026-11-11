@@ -1,29 +1,51 @@
 /**
- * 國小學童閱讀推薦平台 & 喜閱龍 Podcast 講稿編寫系統 - 前端主程式
- * 功能包含：
- * 1. 臺灣標準注音模式 ＆ 即時注音預覽卡片
- * 2. 教師工作台通行密碼安全隔絕 (防止學童誤入) ＆ 學生專屬模式支援
- * 3. 語速 (rate)、音調 (pitch)、音量 (volume) 下拉選單預設 ＋ 手動自訂輸入雙模調校
- * 4. 一鍵轉換《喜閱龍 3 分鐘廣播劇》SOP 講稿，同步產出 Word (.docx)、Markdown 與 Python 腳本
+ * 國小學童閱讀推薦平台 & 喜閱龍 Podcast 講稿編寫系統 - GitHub Pages 專用版
+ * 100% 純前端架構：免後端伺服器、支援離線運作、直接在瀏覽器生成 Word (.docx) 與 Python 腳本
  */
 
 (function () {
   'use strict';
 
-  // 全域狀態
-  const state = {
-    zhuyinEnabled: true,
-    activeTab: 'recommendTab',
-    submissions: [],
-    savedScripts: [],
-    selectedSubmission: null,
-    activeScriptLines: [],
-    previewMode: 'markdown', // 'markdown' | 'python'
-    lastFocusedInput: null,
-    isTeacherAuthenticated: false,
-    studentOnlyMode: false,
-    floatingZhuyinOpen: false
-  };
+  // 本機儲存金鑰
+  const STORAGE_KEY_SUBMISSIONS = 'dragon_reading_submissions_v1';
+  const STORAGE_KEY_SCRIPTS = 'dragon_reading_saved_scripts_v1';
+
+  // 預設樣本文檔 (初次造訪時自動載入，避免收件匣空白)
+  const INITIAL_SEED_SUBMISSIONS = [
+    {
+      id: "sub_seed_01",
+      studentName: "林小晨",
+      gradeClass: "三年二班",
+      bookTitle: "小妖怪系列12：動物界的小妖怪",
+      author: "角野榮子 / 繪者：佐佐木洋子",
+      features: "故事超級幽默搞笑又很溫馨！每一隻動物小妖怪都有特別的怪癖和搞笑的弱點，而且插圖顏色好漂亮、表情超生動，讓人忍不住一口氣看完！",
+      favoriteQuote: "最喜歡「洗乾淨小妖怪」偷偷把森林所有動物的衣服拿去河邊洗，結果大家穿上去通通縮水變小的那一段，真的笑到肚子痛！",
+      message: "喜閱龍和大樹哥哥好！我每天下課都會衝去圖書館看有沒有小妖怪的新書，希望喜閱龍在節目裡唸出我的推薦信，推薦給全校的小朋友！",
+      timestamp: "2026-10-21T09:15:00.000Z"
+    },
+    {
+      id: "sub_seed_02",
+      studentName: "張允菲",
+      gradeClass: "四年一班",
+      bookTitle: "神奇柑仔店1：帶來幸福的錢天堂",
+      author: "廣嶋玲子 / 繪者：jyajya",
+      features: "店老闆紅子賣的神奇零食都有一種神奇魔法，但如果不遵守食用說明書的規則，就會發生意想不到的驚險危機！故事懸疑又很有道理，教大家要心存善良與知足。",
+      favoriteQuote: "「美人魚軟糖可以讓不會游泳的人變成游泳高手，但千萬不能吃太多，否則皮膚會長出魚鱗喔！」這段超刺激！",
+      message: "大樹哥哥和喜閱龍好！我和班上同學都搶著排隊借這本書，希望能在Podcast聽到大樹哥哥介紹錢天堂的神奇零食！",
+      timestamp: "2026-10-21T10:30:00.000Z"
+    },
+    {
+      id: "sub_seed_03",
+      studentName: "陳小安",
+      gradeClass: "二年三班",
+      bookTitle: "野貓軍團開麵包店",
+      author: "工藤紀子",
+      features: "野貓們每次都偷偷溜進汪汪老闆的店裡搞破壞，引發大爆炸後認真反省做麵包！又搞笑又可愛！",
+      favoriteQuote: "「喵——！我們知道錯了！」這句台詞配上野貓們跪坐反省的表情超級無厘頭！",
+      message: "希望大樹哥哥和喜閱龍學野貓叫，一定超好笑！",
+      timestamp: "2026-10-21T11:20:00.000Z"
+    }
+  ];
 
   // 預設聲學參數選項庫 (下拉選單常用值)
   const PRESET_OPTIONS = {
@@ -63,6 +85,21 @@
       { val: '+40%', label: '驚喜長音 (+40%)' },
       { val: '+50%', label: '極限驚喜讚嘆 (+50%)' }
     ]
+  };
+
+  // 全域狀態
+  const state = {
+    zhuyinEnabled: true,
+    activeTab: 'recommendTab',
+    submissions: [],
+    savedScripts: [],
+    selectedSubmission: null,
+    activeScriptLines: [],
+    previewMode: 'markdown',
+    lastFocusedInput: null,
+    isTeacherAuthenticated: false,
+    studentOnlyMode: false,
+    floatingZhuyinOpen: false
   };
 
   // DOM 元素快取
@@ -110,6 +147,9 @@
     fzhuyinSpaceBtn: document.getElementById('fzhuyinSpaceBtn'),
     fzhuyinCloseBtn: document.getElementById('fzhuyinCloseBtn'),
     btnOpenFloatingKeypad: document.getElementById('btnOpenFloatingKeypad'),
+    btnCopyStudentUrl: document.getElementById('btnCopyStudentUrl'),
+    btnCopyTeacherUrl: document.getElementById('btnCopyTeacherUrl'),
+    studentUrlText: document.getElementById('studentUrlText'),
 
     // 即時注音預覽元素
     previewBookTitle: document.getElementById('previewBookTitle'),
@@ -120,7 +160,9 @@
 
     // Studio 元素
     inboxList: document.getElementById('inboxList'),
-    btnRefreshInbox: document.getElementById('btnRefreshInbox'),
+    btnExportData: document.getElementById('btnExportData'),
+    btnImportData: document.getElementById('btnImportData'),
+    importFileInput: document.getElementById('importFileInput'),
     scriptEpisodeName: document.getElementById('scriptEpisodeName'),
     scriptRecommenderInfo: document.getElementById('scriptRecommenderInfo'),
     scriptLinesContainer: document.getElementById('scriptLinesContainer'),
@@ -128,13 +170,12 @@
     btnAddScriptLine: document.getElementById('btnAddScriptLine'),
     btnSaveScript: document.getElementById('btnSaveScript'),
     btnDownloadDocx: document.getElementById('btnDownloadDocx'),
+    btnDownloadPython: document.getElementById('btnDownloadPython'),
     btnCopyMarkdown: document.getElementById('btnCopyMarkdown'),
-    btnRunSynthesis: document.getElementById('btnRunSynthesis'),
     btnToggleMdPreview: document.getElementById('btnToggleMdPreview'),
     btnTogglePyPreview: document.getElementById('btnTogglePyPreview'),
     codePreviewBlock: document.getElementById('codePreviewBlock'),
     savedScriptsList: document.getElementById('savedScriptsList'),
-    btnRefreshSavedScripts: document.getElementById('btnRefreshSavedScripts'),
 
     // Toast
     toastBox: document.getElementById('toastBox'),
@@ -143,7 +184,7 @@
   };
 
   // ==========================================
-  // 1. 初始化與事件綁定
+  // 1. 初始化
   // ==========================================
   function init() {
     initZhuyinMode();
@@ -154,9 +195,8 @@
     initFormLivePreview();
     initStudioActions();
 
-    // 載入初始資料
-    fetchSubmissions();
-    fetchSavedScripts();
+    loadSubmissionsFromStorage();
+    loadSavedScriptsFromStorage();
   }
 
   // ==========================================
@@ -203,7 +243,7 @@
       { id: 'lblBookFeatures', text: '這本書最大的特色是什麼？' },
       { id: 'lblFavoriteQuote', text: '你最喜歡的情節、角色或一句話？' },
       { id: 'lblStudentMessage', text: '想對喜閱龍和大樹哥哥說的話 / 推薦原因' },
-      { id: 'btnSubmitText', text: '送出推薦信給喜閱龍與大樹哥哥' },
+      { id: 'btnSubmitText', text: '送出推薦信給喜閱龍' },
       { id: 'previewBadgeText', text: '✨ 即時注音預覽卡片' },
       { id: 'lblPreviewFeatures', text: '【書籍特色】' },
       { id: 'lblPreviewQuote', text: '【最愛的情節或金句】' },
@@ -219,40 +259,43 @@
   }
 
   // ==========================================
-  // 3. 教師安全權限驗證與學生專用模式隔絕 (避免學生亂切換)
+  // 3. 教師安全權限驗證與學生模式隔絕
   // ==========================================
   function initTeacherAuth() {
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode');
+    const path = window.location.pathname.toLowerCase();
+    const isStudentPage = path.endsWith('student.html') || mode === 'student';
+    const isTeacherPage = path.endsWith('teacher.html') || path.endsWith('studio.html') || mode === 'studio' || mode === 'teacher';
 
-    // 檢查 URL 參數
-    if (mode === 'student') {
-      // 學生專用模式：徹底隱藏 Podcast 工作台按鈕，完全杜絕學生切換
+    if (isStudentPage) {
       state.studentOnlyMode = true;
       if (dom.tabBtnStudio) dom.tabBtnStudio.style.display = 'none';
-      console.log('[系統] 啟動學生專用隔絕模式，隱藏教師工作台');
-    } else if (mode === 'studio' || mode === 'teacher') {
-      // 教師直達模式
+      if (dom.teacherAuthModal) dom.teacherAuthModal.style.display = 'none';
+      switchTab('recommendTab');
+    } else if (isTeacherPage) {
       sessionStorage.setItem('teacher_auth', 'true');
       state.isTeacherAuthenticated = true;
       updateAuthUI();
       switchTab('studioTab');
     } else {
-      // 一般模式：檢查 session 是否已有驗證紀錄
       state.isTeacherAuthenticated = sessionStorage.getItem('teacher_auth') === 'true';
       updateAuthUI();
     }
 
-    // 彈窗確認解鎖
-    dom.btnConfirmAuth.addEventListener('click', verifyPasscode);
-    dom.teacherPasscodeInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        verifyPasscode();
-      }
-    });
+    // 更新工作室頂部的專屬網址分享連結
+    initUrlShareBar();
 
-    // 關閉/取消彈窗
+    if (dom.btnConfirmAuth) dom.btnConfirmAuth.addEventListener('click', verifyPasscode);
+    if (dom.teacherPasscodeInput) {
+      dom.teacherPasscodeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          verifyPasscode();
+        }
+      });
+    }
+
     [dom.btnCancelAuth, dom.btnCancelAuth2].forEach(btn => {
       if (btn) {
         btn.addEventListener('click', () => {
@@ -263,7 +306,6 @@
       }
     });
 
-    // 鎖定並回到學生模式
     if (dom.btnLockStudio) {
       dom.btnLockStudio.addEventListener('click', () => {
         sessionStorage.removeItem('teacher_auth');
@@ -275,6 +317,58 @@
     }
   }
 
+  function initUrlShareBar() {
+    const origin = window.location.origin;
+    let basePath = window.location.pathname;
+    basePath = basePath.replace(/(index|student|teacher|studio)\.html$/i, '');
+    if (!basePath.endsWith('/')) basePath += '/';
+
+    const fullStudentUrl = `${origin}${basePath}student.html`;
+    const fullTeacherUrl = `${origin}${basePath}teacher.html`;
+
+    if (dom.studentUrlText) {
+      dom.studentUrlText.textContent = fullStudentUrl;
+    }
+
+    if (dom.btnCopyStudentUrl) {
+      dom.btnCopyStudentUrl.addEventListener('click', () => {
+        copyToClipboard(fullStudentUrl, '📋 學生專用網址已複製！可直接發給學生或班級群組～');
+      });
+    }
+
+    if (dom.btnCopyTeacherUrl) {
+      dom.btnCopyTeacherUrl.addEventListener('click', () => {
+        copyToClipboard(fullTeacherUrl, '📋 教師工作台網址已複製！');
+      });
+    }
+  }
+
+  function copyToClipboard(text, successMsg) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(successMsg, 'success');
+      }).catch(() => fallbackCopy(text, successMsg));
+    } else {
+      fallbackCopy(text, successMsg);
+    }
+  }
+
+  function fallbackCopy(text, successMsg) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      showToast(successMsg, 'success');
+    } catch (e) {
+      showToast('請手動選取網址進行複製', 'info');
+    }
+    document.body.removeChild(ta);
+  }
+
   function updateAuthUI() {
     if (dom.studioLockIcon) {
       dom.studioLockIcon.textContent = state.isTeacherAuthenticated ? '🔓' : '🔒';
@@ -283,7 +377,6 @@
 
   function verifyPasscode() {
     const inputVal = dom.teacherPasscodeInput.value.trim();
-    // 預設密碼為 115 (代表 115 課研組)
     if (inputVal === '115') {
       state.isTeacherAuthenticated = true;
       sessionStorage.setItem('teacher_auth', 'true');
@@ -301,45 +394,52 @@
   }
 
   // ==========================================
-  // 4. 分頁切換導覽 (含權限防護)
+  // 4. 分頁切換導覽
   // ==========================================
   function initTabNavigation() {
-    dom.tabBtnRecommend.addEventListener('click', () => switchTab('recommendTab'));
+    if (dom.tabBtnRecommend) {
+      dom.tabBtnRecommend.addEventListener('click', () => switchTab('recommendTab'));
+    }
 
-    dom.tabBtnStudio.addEventListener('click', () => {
-      // 學生模式防護：若尚未通過驗證，彈出密碼視窗阻擋
-      if (!state.isTeacherAuthenticated) {
-        dom.teacherAuthModal.style.display = 'flex';
-        dom.authErrorMsg.style.display = 'none';
-        dom.teacherPasscodeInput.value = '';
-        setTimeout(() => dom.teacherPasscodeInput.focus(), 100);
-        return;
-      }
-      switchTab('studioTab');
-    });
+    if (dom.tabBtnStudio) {
+      dom.tabBtnStudio.addEventListener('click', () => {
+        if (!state.isTeacherAuthenticated) {
+          if (dom.teacherAuthModal) {
+            dom.teacherAuthModal.style.display = 'flex';
+            if (dom.authErrorMsg) dom.authErrorMsg.style.display = 'none';
+            if (dom.teacherPasscodeInput) {
+              dom.teacherPasscodeInput.value = '';
+              setTimeout(() => dom.teacherPasscodeInput.focus(), 100);
+            }
+          }
+          return;
+        }
+        switchTab('studioTab');
+      });
+    }
   }
 
   function switchTab(tabId) {
     state.activeTab = tabId;
     if (tabId === 'recommendTab') {
-      dom.tabBtnRecommend.classList.add('active');
-      dom.tabBtnStudio.classList.remove('active');
-      dom.recommendTab.classList.add('active');
-      dom.studioTab.classList.remove('active');
+      if (dom.tabBtnRecommend) dom.tabBtnRecommend.classList.add('active');
+      if (dom.tabBtnStudio) dom.tabBtnStudio.classList.remove('active');
+      if (dom.recommendTab) dom.recommendTab.classList.add('active');
+      if (dom.studioTab) dom.studioTab.classList.remove('active');
       if (dom.floatingZhuyinFab) dom.floatingZhuyinFab.style.display = 'flex';
     } else {
-      dom.tabBtnStudio.classList.add('active');
-      dom.tabBtnRecommend.classList.remove('active');
-      dom.studioTab.classList.add('active');
-      dom.recommendTab.classList.remove('active');
+      if (dom.tabBtnStudio) dom.tabBtnStudio.classList.add('active');
+      if (dom.tabBtnRecommend) dom.tabBtnRecommend.classList.remove('active');
+      if (dom.studioTab) dom.studioTab.classList.add('active');
+      if (dom.recommendTab) dom.recommendTab.classList.remove('active');
       setFloatingZhuyinOpen(false);
       if (dom.floatingZhuyinFab) dom.floatingZhuyinFab.style.display = 'none';
-      fetchSubmissions(); // 切換時自動重新載入收件匣
+      renderInboxList();
     }
   }
 
   // ==========================================
-  // 5. 快捷特色標籤與浮動注音小鍵盤
+  // 5. 快捷靈感標籤與浮動注音小鍵盤
   // ==========================================
   function initFeatureTags() {
     if (!window.ZhuyinEngine || !ZhuyinEngine.FEATURE_TAGS) return;
@@ -430,6 +530,15 @@
   }
 
   function initZhuyinKeypad() {
+    const path = window.location.pathname.toLowerCase();
+    const isTeacherPage = path.endsWith('teacher.html') || path.endsWith('studio.html');
+    if (isTeacherPage) {
+      // 教師工作台不需要注音工具，完全隱藏與停用
+      if (dom.floatingZhuyinFab) dom.floatingZhuyinFab.style.display = 'none';
+      if (dom.floatingZhuyinContainer) dom.floatingZhuyinContainer.style.display = 'none';
+      return;
+    }
+
     if (!window.ZhuyinEngine || !ZhuyinEngine.ZHUYIN_ALPHABET) return;
 
     FIELD_MAP['bookTitle'] = dom.bookTitle;
@@ -458,31 +567,50 @@
       });
     });
 
+    // 通用按鍵點擊與觸控綁定輔助函式（完美相容手機觸控螢幕、iPad 與桌機滑鼠）
+    function attachKeyAction(element, actionFn) {
+      if (!element) return;
+      // 桌機滑鼠點擊時避免 input 焦點失焦
+      element.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+      });
+
+      let touchHandled = false;
+      element.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        touchHandled = true;
+        actionFn();
+        setTimeout(() => { touchHandled = false; }, 250);
+      }, { passive: false });
+
+      element.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (touchHandled) return;
+        actionFn();
+      });
+    }
+
     // 1. FAB 快捷懸浮鈕點擊開關
     if (dom.floatingZhuyinFab) {
-      dom.floatingZhuyinFab.addEventListener('click', (e) => {
-        e.preventDefault();
+      attachKeyAction(dom.floatingZhuyinFab, () => {
         setFloatingZhuyinOpen(!state.floatingZhuyinOpen);
       });
     }
 
-    // 2. 表單內引導卡片點擊開啟
+    // 2. 表單內引導卡片點擊開啟 (若存在)
     if (dom.assistantToggle) {
-      dom.assistantToggle.addEventListener('click', (e) => {
-        e.preventDefault();
+      attachKeyAction(dom.assistantToggle, () => {
         setFloatingZhuyinOpen(true);
         if (!state.lastFocusedInput) {
           state.lastFocusedInput = dom.bookFeatures;
         }
-        state.lastFocusedInput.focus();
         updateFloatingMirror();
       });
     }
 
     // 3. 浮動面板收合按鈕
     if (dom.fzhuyinCloseBtn) {
-      dom.fzhuyinCloseBtn.addEventListener('click', (e) => {
-        e.preventDefault();
+      attachKeyAction(dom.fzhuyinCloseBtn, () => {
         setFloatingZhuyinOpen(false);
       });
     }
@@ -496,7 +624,6 @@
         const targetInput = FIELD_MAP[fieldKey];
         if (targetInput) {
           state.lastFocusedInput = targetInput;
-          targetInput.focus();
           updateFloatingMirror();
         }
       });
@@ -504,9 +631,7 @@
 
     // 5. 倒退刪除按鈕 (Backspace)
     if (dom.fzhuyinBackspaceBtn) {
-      dom.fzhuyinBackspaceBtn.addEventListener('pointerdown', (e) => e.preventDefault());
-      dom.fzhuyinBackspaceBtn.addEventListener('click', (e) => {
-        e.preventDefault();
+      attachKeyAction(dom.fzhuyinBackspaceBtn, () => {
         const target = state.lastFocusedInput || dom.bookFeatures;
         deleteAtCursor(target);
         target.dispatchEvent(new Event('input', { bubbles: true }));
@@ -516,9 +641,7 @@
 
     // 6. 空格按鈕 (Space)
     if (dom.fzhuyinSpaceBtn) {
-      dom.fzhuyinSpaceBtn.addEventListener('pointerdown', (e) => e.preventDefault());
-      dom.fzhuyinSpaceBtn.addEventListener('click', (e) => {
-        e.preventDefault();
+      attachKeyAction(dom.fzhuyinSpaceBtn, () => {
         const target = state.lastFocusedInput || dom.bookFeatures;
         insertAtCursor(target, ' ');
         target.dispatchEvent(new Event('input', { bubbles: true }));
@@ -544,11 +667,7 @@
           key.title = symbol === 'ˊ' ? '二聲' : symbol === 'ˇ' ? '三聲' : symbol === 'ˋ' ? '四聲' : '輕聲';
         }
 
-        // 重要：pointerdown preventDefault 避免 input 焦點遺失，讓游標持續停在正確位置
-        key.addEventListener('pointerdown', (e) => e.preventDefault());
-
-        key.addEventListener('click', (e) => {
-          e.preventDefault();
+        attachKeyAction(key, () => {
           const target = state.lastFocusedInput || dom.bookFeatures;
           insertAtCursor(target, symbol);
           target.dispatchEvent(new Event('input', { bubbles: true }));
@@ -562,38 +681,37 @@
 
   function insertAtCursor(myField, myValue) {
     if (!myField) return;
-    myField.focus();
-    if (document.selection) {
-      const sel = document.selection.createRange();
-      sel.text = myValue;
-    } else if (myField.selectionStart || myField.selectionStart === 0) {
-      const startPos = myField.selectionStart;
-      const endPos = myField.selectionEnd;
-      myField.value = myField.value.substring(0, startPos) + myValue + myField.value.substring(endPos, myField.value.length);
-      myField.selectionStart = startPos + myValue.length;
-      myField.selectionEnd = startPos + myValue.length;
-    } else {
-      myField.value += myValue;
+    const oldVal = myField.value || '';
+    let startPos = (typeof myField.selectionStart === 'number') ? myField.selectionStart : oldVal.length;
+    let endPos = (typeof myField.selectionEnd === 'number') ? myField.selectionEnd : oldVal.length;
+
+    myField.value = oldVal.substring(0, startPos) + myValue + oldVal.substring(endPos);
+    const newPos = startPos + myValue.length;
+    if (typeof myField.setSelectionRange === 'function') {
+      try {
+        myField.setSelectionRange(newPos, newPos);
+      } catch (err) {}
     }
   }
 
   function deleteAtCursor(myField) {
     if (!myField) return;
-    myField.focus();
-    if (myField.selectionStart || myField.selectionStart === 0) {
-      const startPos = myField.selectionStart;
-      const endPos = myField.selectionEnd;
-      if (startPos !== endPos) {
-        myField.value = myField.value.substring(0, startPos) + myField.value.substring(endPos, myField.value.length);
-        myField.selectionStart = startPos;
-        myField.selectionEnd = startPos;
-      } else if (startPos > 0) {
-        myField.value = myField.value.substring(0, startPos - 1) + myField.value.substring(endPos, myField.value.length);
-        myField.selectionStart = startPos - 1;
-        myField.selectionEnd = startPos - 1;
+    const oldVal = myField.value || '';
+    if (!oldVal) return;
+    let startPos = (typeof myField.selectionStart === 'number') ? myField.selectionStart : oldVal.length;
+    let endPos = (typeof myField.selectionEnd === 'number') ? myField.selectionEnd : oldVal.length;
+
+    if (startPos !== endPos) {
+      myField.value = oldVal.substring(0, startPos) + oldVal.substring(endPos);
+      if (typeof myField.setSelectionRange === 'function') {
+        try { myField.setSelectionRange(startPos, startPos); } catch (err) {}
       }
-    } else if (myField.value && myField.value.length > 0) {
-      myField.value = myField.value.slice(0, -1);
+    } else if (startPos > 0) {
+      myField.value = oldVal.substring(0, startPos - 1) + oldVal.substring(endPos);
+      const newPos = startPos - 1;
+      if (typeof myField.setSelectionRange === 'function') {
+        try { myField.setSelectionRange(newPos, newPos); } catch (err) {}
+      }
     }
   }
 
@@ -641,58 +759,77 @@
     dom.previewMessage.innerHTML = ZhuyinEngine.toRubyHtml(msg);
   }
 
-  async function handleFormSubmit(e) {
+  // 學生表單送出 -> 儲存至瀏覽器 LocalStorage
+  function handleFormSubmit(e) {
     e.preventDefault();
 
-    const payload = {
+    const now = new Date();
+    const sub = {
+      id: `sub_${now.getTime()}_${Math.floor(Math.random() * 1000)}`,
       studentName: dom.studentName.value.trim(),
       gradeClass: dom.gradeClass.value.trim(),
       bookTitle: dom.bookTitle.value.trim(),
       author: dom.author.value.trim(),
       features: dom.bookFeatures.value.trim(),
       favoriteQuote: dom.favoriteQuote.value.trim(),
-      message: dom.studentMessage.value.trim()
+      message: dom.studentMessage.value.trim(),
+      timestamp: now.toISOString()
     };
 
+    state.submissions.unshift(sub);
+    saveSubmissionsToStorage();
+
+    showToast('🎉 太棒了！推薦信已送達喜閱龍與大樹哥哥！', 'success');
+    dom.recommendForm.reset();
+    renderLivePreview();
+    updateFloatingMirror();
+    renderInboxList();
+  }
+
+  // ==========================================
+  // 7. 本機資料管理 (LocalStorage ＆ 匯出備份/匯入)
+  // ==========================================
+  function loadSubmissionsFromStorage() {
     try {
-      const res = await fetch('/api/submissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (data.success) {
-        showToast('🎉 太棒了！推薦信已送達喜閱龍與大樹哥哥！', 'success');
-        dom.recommendForm.reset();
-        renderLivePreview();
-        updateFloatingMirror();
-        fetchSubmissions();
+      const raw = localStorage.getItem(STORAGE_KEY_SUBMISSIONS);
+      if (raw) {
+        state.submissions = JSON.parse(raw);
       } else {
-        showToast(`送出失敗：${data.error}`, 'error');
+        state.submissions = [...INITIAL_SEED_SUBMISSIONS];
+        saveSubmissionsToStorage();
       }
-    } catch (err) {
-      showToast(`連線異常：${err.message}`, 'error');
+    } catch (e) {
+      state.submissions = [...INITIAL_SEED_SUBMISSIONS];
     }
+    if (dom.inboxCountBadge) dom.inboxCountBadge.textContent = state.submissions.length;
+    if (dom.inboxList) renderInboxList();
   }
 
-  // ==========================================
-  // 7. 收件匣與 Podcast 講稿工作台 (Studio)
-  // ==========================================
-  async function fetchSubmissions() {
+  function saveSubmissionsToStorage() {
+    localStorage.setItem(STORAGE_KEY_SUBMISSIONS, JSON.stringify(state.submissions));
+    if (dom.inboxCountBadge) dom.inboxCountBadge.textContent = state.submissions.length;
+  }
+
+  function loadSavedScriptsFromStorage() {
     try {
-      const res = await fetch('/api/submissions');
-      const data = await res.json();
-      if (data.success) {
-        state.submissions = data.submissions || [];
-        dom.inboxCountBadge.textContent = state.submissions.length;
-        renderInboxList();
-      }
-    } catch (err) {
-      console.error('獲取推薦失敗:', err);
+      const raw = localStorage.getItem(STORAGE_KEY_SCRIPTS);
+      state.savedScripts = raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      state.savedScripts = [];
     }
+    renderSavedScriptsList();
   }
 
+  function saveScriptsToStorage() {
+    localStorage.setItem(STORAGE_KEY_SCRIPTS, JSON.stringify(state.savedScripts));
+    renderSavedScriptsList();
+  }
+
+  // ==========================================
+  // 8. 推薦信收件匣渲染
+  // ==========================================
   function renderInboxList() {
+    if (!dom.inboxList) return;
     dom.inboxList.innerHTML = '';
     if (state.submissions.length === 0) {
       dom.inboxList.innerHTML = `
@@ -742,7 +879,7 @@
   }
 
   /**
-   * 核心：依據龍埔國小《喜閱龍的3分鐘圖書館奇遇》SOP 智慧生成 18~21 句標準廣播劇對白！
+   * 核心：依據龍埔國小《喜閱龍的3分鐘圖書館奇遇》SOP 智慧生成廣播劇對白！
    */
   function generatePodcastScriptFromSubmission(sub) {
     const student = sub.studentName || '小讀者';
@@ -928,11 +1065,12 @@
   }
 
   // ==========================================
-  // 8. 視覺化對白行編輯器 (支援下拉選單＋手動輸入雙模)
+  // 9. 視覺化對白行編輯器 (雙模調校與無左右拉條)
   // ==========================================
   function renderScriptLines() {
+    if (!dom.scriptLinesContainer) return;
     dom.scriptLinesContainer.innerHTML = '';
-    dom.scriptLineCount.textContent = state.activeScriptLines.length;
+    if (dom.scriptLineCount) dom.scriptLineCount.textContent = state.activeScriptLines.length;
 
     state.activeScriptLines.forEach((line, idx) => {
       line.index = idx + 1;
@@ -944,17 +1082,14 @@
 
       card.className = `script-line-card ${roleClass}`;
 
-      // 產生語速下拉選項
       const rateOptionsHtml = PRESET_OPTIONS.rate.map(opt =>
         `<option value="${opt.val}">${opt.val} ${opt.label}</option>`
       ).join('');
 
-      // 產生音調下拉選項
       const pitchOptionsHtml = PRESET_OPTIONS.pitch.map(opt =>
         `<option value="${opt.val}">${opt.val} ${opt.label}</option>`
       ).join('');
 
-      // 產生音量下拉選項
       const volumeOptionsHtml = PRESET_OPTIONS.volume.map(opt =>
         `<option value="${opt.val}">${opt.val} ${opt.label}</option>`
       ).join('');
@@ -1009,14 +1144,12 @@
         <input type="text" class="line-note-input" data-index="${idx}" value="${escapeHtml(line.note || '')}" placeholder="導演表情備註（例如：親切開場、驚喜長音、有感提速、塞[Sai]正音）">
       `;
 
-      // 角色選擇事件
       card.querySelector('.role-select').addEventListener('change', (e) => {
         line.role = e.target.value;
         renderScriptLines();
         updateOutputPreviews();
       });
 
-      // 台詞與備註事件
       card.querySelector('.line-content-input').addEventListener('input', (e) => {
         line.text = e.target.value;
         updateOutputPreviews();
@@ -1027,31 +1160,25 @@
         updateOutputPreviews();
       });
 
-      // 語速：手動輸入
       const rateInput = card.querySelector('.param-rate');
+      const rateSelect = card.querySelector('.param-rate-select');
       rateInput.addEventListener('input', (e) => {
         line.rate = e.target.value;
         updateOutputPreviews();
       });
-
-      // 語速：下拉選單選取
-      const rateSelect = card.querySelector('.param-rate-select');
       rateSelect.addEventListener('change', (e) => {
         line.rate = e.target.value;
         rateInput.value = e.target.value;
         updateOutputPreviews();
-        rateSelect.selectedIndex = 0; // 重設回標籤
+        rateSelect.selectedIndex = 0;
       });
 
-      // 音調：手動輸入
       const pitchInput = card.querySelector('.param-pitch');
+      const pitchSelect = card.querySelector('.param-pitch-select');
       pitchInput.addEventListener('input', (e) => {
         line.pitch = e.target.value;
         updateOutputPreviews();
       });
-
-      // 音調：下拉選單選取
-      const pitchSelect = card.querySelector('.param-pitch-select');
       pitchSelect.addEventListener('change', (e) => {
         line.pitch = e.target.value;
         pitchInput.value = e.target.value;
@@ -1059,15 +1186,12 @@
         pitchSelect.selectedIndex = 0;
       });
 
-      // 音量：手動輸入
       const volumeInput = card.querySelector('.param-volume');
+      const volumeSelect = card.querySelector('.param-volume-select');
       volumeInput.addEventListener('input', (e) => {
         line.volume = e.target.value;
         updateOutputPreviews();
       });
-
-      // 音量：下拉選單選取
-      const volumeSelect = card.querySelector('.param-volume-select');
       volumeSelect.addEventListener('change', (e) => {
         line.volume = e.target.value;
         volumeInput.value = e.target.value;
@@ -1075,7 +1199,6 @@
         volumeSelect.selectedIndex = 0;
       });
 
-      // 刪除按鈕
       card.querySelector('.line-delete-btn').addEventListener('click', () => {
         state.activeScriptLines.splice(idx, 1);
         renderScriptLines();
@@ -1087,7 +1210,158 @@
   }
 
   // ==========================================
-  // 9. 講稿匯出產生器 (Markdown & Python)
+  // 10. 純前端 Word (.docx) 生成模組 (docx.js)
+  // ==========================================
+  async function generateAndDownloadDocx() {
+    if (!window.docx) {
+      showToast('Docx 函式庫載入中，請稍後...', 'error');
+      return;
+    }
+
+    const epTitle = dom.scriptEpisodeName.value.trim() || '喜閱龍Podcast廣播劇';
+    const recommender = dom.scriptRecommenderInfo.value.trim() || '小讀者';
+    const sub = state.selectedSubmission || {};
+    const safeTitle = epTitle.replace(/[\\/:*?"<>|]/g, '_');
+
+    const { Document, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, ShadingType } = window.docx;
+
+    // 建立表頭
+    const headers = ['分軌序號', '播客角色', '錄音台詞 (請劃記)', '表情與調校備註'];
+    const colWidths = [12, 20, 48, 20]; // 百分比
+
+    const headerCells = headers.map((h, i) => new TableCell({
+      width: { size: colWidths[i], type: WidthType.PERCENTAGE },
+      shading: { type: ShadingType.CLEAR, fill: '047857' },
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text: h, bold: true, color: 'FFFFFF', size: 21, font: '微軟正黑體' })]
+        })
+      ]
+    }));
+
+    const rows = [new TableRow({ children: headerCells })];
+
+    // 填入對白列
+    state.activeScriptLines.forEach((l, idx) => {
+      const isDragon = l.role === '喜閱龍';
+      const bgColor = isDragon ? (idx % 2 === 0 ? 'ECFDF5' : 'E6F9F0') : (idx % 2 === 0 ? 'FFFFFF' : 'F8FAFC');
+      const roleColor = isDragon ? '10B981' : (l.role === '大樹' ? '7C3AED' : 'D97706');
+      const roleLabel = isDragon ? '🦕 喜閱龍' : (l.role === '大樹' ? '🌳 大樹哥哥' : `👦 ${l.role}`);
+
+      const row = new TableRow({
+        children: [
+          // 序號
+          new TableCell({
+            width: { size: colWidths[0], type: WidthType.PERCENTAGE },
+            shading: { type: ShadingType.CLEAR, fill: bgColor },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun({ text: `分軌 ${String(l.index).padStart(2, '0')}`, bold: true, color: '64748B', size: 20, font: '微軟正黑體' })]
+              })
+            ]
+          }),
+          // 角色
+          new TableCell({
+            width: { size: colWidths[1], type: WidthType.PERCENTAGE },
+            shading: { type: ShadingType.CLEAR, fill: bgColor },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun({ text: roleLabel, bold: true, color: roleColor, size: 22, font: '微軟正黑體' })]
+              })
+            ]
+          }),
+          // 台詞 (大字體 26 = 13pt，方便看稿)
+          new TableCell({
+            width: { size: colWidths[2], type: WidthType.PERCENTAGE },
+            shading: { type: ShadingType.CLEAR, fill: bgColor },
+            children: [
+              new Paragraph({
+                spacing: { line: 320, after: 60 },
+                children: [new TextRun({ text: `「${l.text}」`, bold: true, color: '0F172A', size: 26, font: '微軟正黑體' })]
+              })
+            ]
+          }),
+          // 表情與參數備註
+          new TableCell({
+            width: { size: colWidths[3], type: WidthType.PERCENTAGE },
+            shading: { type: ShadingType.CLEAR, fill: bgColor },
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({ text: l.note ? `${l.note}\n` : '', italics: true, color: 'B45309', size: 18, font: '微軟正黑體' }),
+                  new TextRun({ text: `語速:${l.rate}\n音調:${l.pitch}\n音量:${l.volume}`, color: '64748B', size: 17, font: '微軟正黑體' })
+                ]
+              })
+            ]
+          })
+        ]
+      });
+      rows.push(row);
+    });
+
+    const scriptTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows
+    });
+
+    // 文件整體結構
+    const doc = new Document({
+      sections: [{
+        properties: {
+          page: {
+            margin: { top: 1152, bottom: 1152, left: 1152, right: 1152 } // 0.8 inch
+          }
+        },
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({ text: '🎙️ 《喜閱龍的3分鐘圖書館奇遇》Podcast 廣播劇錄音講稿', bold: true, color: '107850', size: 36, font: '微軟正黑體' })
+            ]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 },
+            children: [
+              new TextRun({ text: '新北市龍埔國小 閱讀推廣 Podcast 節目錄音專用稿 (錄音者閱讀劃記專用)', color: '64748B', size: 22, font: '微軟正黑體' })
+            ]
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: `【本集主題】：${epTitle}  |  【推薦小達人】：${recommender}\n`, bold: true, size: 20, font: '微軟正黑體' }),
+              new TextRun({ text: `【書籍作者】：${sub.author || '知名作家'}  |  【主持陣容】：🌳大樹哥哥 ＋ 🦕喜閱龍`, size: 20, font: '微軟正黑體' })
+            ]
+          }),
+          new Paragraph({
+            spacing: { before: 120, after: 180 },
+            children: [
+              new TextRun({ text: '📢 錄音注意事項：', bold: true, color: 'D97706', size: 19, font: '微軟正黑體' }),
+              new TextRun({ text: '括號內文字為導演語態建議，錄音時請勿讀出；遇到破折號「——」請保持 0.3 秒自然呼吸停頓。', color: '475569', size: 19, font: '微軟正黑體' })
+            ]
+          }),
+          scriptTable,
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            spacing: { before: 240 },
+            children: [
+              new TextRun({ text: '新北市龍埔國小 課研組 閱讀推廣 Podcast 製作團隊 敬製', color: '94A3B8', size: 19, font: '微軟正黑體' })
+            ]
+          })
+        ]
+      }]
+    });
+
+    showToast('📄 正在生成 Word (.docx) 錄音講稿...', 'info');
+    const blob = await window.docx.Packer.toBlob(doc);
+    saveAs(blob, `${safeTitle}.docx`);
+    showToast(`✅ Word 講稿下載成功: ${safeTitle}.docx`, 'success');
+  }
+
+  // ==========================================
+  // 11. Markdown ＆ Python 產生與下載
   // ==========================================
   function generateMarkdownScript() {
     const epName = dom.scriptEpisodeName.value.trim() || '喜閱龍Podcast節目';
@@ -1141,18 +1415,15 @@ import os
 import time
 import uuid
 import hashlib
-import secrets
 import ssl
 from xml.sax.saxutils import escape
 import websocket
 
-sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-# ==========================================
-# 1. 集數與檔案輸出設定
-# ==========================================
 EPISODE_NAME = "${safeEpName}"
-ROOT_DIR     = r"g:\\我的雲端硬碟\\115課研組\\000-閱讀PODCAST資料"
+ROOT_DIR     = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR   = os.path.join(ROOT_DIR, f"{EPISODE_NAME}_segments")
 FINAL_MP3    = os.path.join(ROOT_DIR, f"{EPISODE_NAME}.mp3")
 
@@ -1169,9 +1440,6 @@ SEC_MS_GEC_VERSION = f'1-{CHROMIUM_FULL_VERSION}'
 WIN_EPOCH = 11644473600
 S_TO_NS = 1e9
 
-# ==========================================
-# 2. 劇本設定庫 (序號, 角色, [(台詞, pitch, rate, volume)], 說明)
-# ==========================================
 SCRIPT = [
 ${scriptItems}
 ]
@@ -1275,6 +1543,7 @@ if __name__ == '__main__':
   }
 
   function updateOutputPreviews() {
+    if (!dom.codePreviewBlock) return;
     if (state.previewMode === 'markdown') {
       dom.codePreviewBlock.textContent = generateMarkdownScript();
     } else {
@@ -1283,11 +1552,10 @@ if __name__ == '__main__':
   }
 
   // ==========================================
-  // 10. Studio 動作按鈕綁定 (存檔/下載 Word/複製/合成)
+  // 12. 工作台動作綁定 (存檔/下載 Word/Python/複製)
   // ==========================================
   function initStudioActions() {
-    dom.btnRefreshInbox.addEventListener('click', fetchSubmissions);
-
+    if (!dom.btnAddScriptLine) return;
     dom.btnAddScriptLine.addEventListener('click', () => {
       const newIdx = state.activeScriptLines.length + 1;
       state.activeScriptLines.push({
@@ -1323,37 +1591,74 @@ if __name__ == '__main__':
       navigator.clipboard.writeText(md).then(() => {
         showToast('📋 已複製 Markdown 講稿到剪貼簿！', 'success');
       }).catch(() => {
-        showToast('複製失敗，請手動選取複製', 'error');
+        showToast('複製失敗，請手動複製', 'error');
       });
     });
 
-    // 講稿存檔 (原儲存講稿存檔)
+    // 講稿存檔
     dom.btnSaveScript.addEventListener('click', handleSaveScript);
 
-    // 下載 Word 錄音講稿 (.docx)
-    if (dom.btnDownloadDocx) {
-      dom.btnDownloadDocx.addEventListener('click', handleDownloadDocx);
-    }
+    // 下載 Word 講稿 (.docx)
+    dom.btnDownloadDocx.addEventListener('click', generateAndDownloadDocx);
 
-    // 語音合成試聽
-    dom.btnRunSynthesis.addEventListener('click', handleRunSynthesis);
+    // 下載 Python 語音合成腳本 (.py)
+    dom.btnDownloadPython.addEventListener('click', () => {
+      const py = generatePythonScript();
+      const safeTitle = (dom.scriptEpisodeName.value.trim() || '喜閱龍Podcast').replace(/[\\/:*?"<>|]/g, '_');
+      const blob = new Blob([py], { type: 'text/plain;charset=utf-8' });
+      saveAs(blob, `generate_${safeTitle}.py`);
+      showToast('🐍 已下載 Python 語音合成腳本！', 'success');
+    });
 
-    dom.btnRefreshSavedScripts.addEventListener('click', fetchSavedScripts);
+    // 匯出資料備份 (JSON)
+    dom.btnExportData.addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(state.submissions, null, 2)], { type: 'application/json;charset=utf-8' });
+      saveAs(blob, `喜閱龍好書推薦信備份_${new Date().toISOString().slice(0, 10)}.json`);
+      showToast('💾 推薦信資料已成功匯出備份！', 'success');
+    });
+
+    // 匯入資料 (JSON)
+    dom.btnImportData.addEventListener('click', () => {
+      dom.importFileInput.click();
+    });
+
+    dom.importFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const list = JSON.parse(evt.target.result);
+          if (Array.isArray(list)) {
+            state.submissions = list;
+            saveSubmissionsToStorage();
+            renderInboxList();
+            showToast(`📥 成功匯入 ${list.length} 筆好書推薦信！`, 'success');
+          } else {
+            showToast('匯入格式不符合 (需為 JSON 陣列)', 'error');
+          }
+        } catch (err) {
+          showToast(`匯入失敗：${err.message}`, 'error');
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+      dom.importFileInput.value = '';
+    });
   }
 
-  /**
-   * 講稿存檔：同時產生並儲存 .json, .md, .py 與 .docx 格式
-   */
-  async function handleSaveScript() {
+  function handleSaveScript() {
     if (state.activeScriptLines.length === 0) {
       showToast('請先生成或新增對白內容', 'error');
-      return null;
+      return;
     }
 
     const epTitle = dom.scriptEpisodeName.value.trim() || '喜閱龍Podcast講稿';
     const sub = state.selectedSubmission || {};
+    const safeTitle = epTitle.replace(/[\\/:*?"<>|]/g, '_');
 
-    const payload = {
+    const scriptRecord = {
+      id: `script_${Date.now()}`,
+      fileBaseName: safeTitle,
       episodeTitle: epTitle,
       bookTitle: sub.bookTitle || epTitle,
       studentName: sub.studentName || '',
@@ -1363,116 +1668,24 @@ if __name__ == '__main__':
       favoriteQuote: sub.favoriteQuote || '',
       lines: state.activeScriptLines,
       markdown: generateMarkdownScript(),
-      pythonCode: generatePythonScript()
+      pythonCode: generatePythonScript(),
+      updatedAt: new Date().toISOString()
     };
 
-    try {
-      showToast('正在進行講稿存檔 (生成 Word、Markdown 與 Python)...', 'info');
-      const res = await fetch('/api/scripts/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (data.success) {
-        showToast(`💾 講稿存檔成功！已同時生成 Word (.docx) 錄音講稿！`, 'success');
-        fetchSavedScripts();
-        return data.fileBaseName;
-      } else {
-        showToast(`存檔失敗：${data.error}`, 'error');
-        return null;
-      }
-    } catch (err) {
-      showToast(`連線錯誤：${err.message}`, 'error');
-      return null;
+    // 儲存至本機
+    const existingIdx = state.savedScripts.findIndex(s => s.episodeTitle === epTitle);
+    if (existingIdx >= 0) {
+      state.savedScripts[existingIdx] = scriptRecord;
+    } else {
+      state.savedScripts.unshift(scriptRecord);
     }
-  }
+    saveScriptsToStorage();
 
-  async function handleDownloadDocx() {
-    // 先執行講稿存檔，確保取得最新的 Word 檔案
-    const fileBaseName = await handleSaveScript();
-    if (fileBaseName) {
-      const downloadUrl = `/api/download/${fileBaseName}.docx`;
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = `${fileBaseName}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      showToast(`📄 正在下載 Word 講稿: ${fileBaseName}.docx`, 'success');
-    }
-  }
-
-  async function handleRunSynthesis() {
-    const epTitle = dom.scriptEpisodeName.value.trim() || '喜閱龍Podcast講稿';
-    const safeTitle = epTitle.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, '_');
-    const fileBaseName = `EP_${safeTitle}`;
-
-    await handleSaveScript();
-
-    showToast('🔊 正在呼叫神經網路語音合成中... 請稍候約 10~20 秒', 'info');
-
-    try {
-      const res = await fetch('/api/synthesize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileBaseName })
-      });
-      const data = await res.json();
-      if (data.success) {
-        showToast('🎉 語音合成完成！全集 MP3 已生成！', 'success');
-        playAudio(data.audioFile);
-      } else {
-        showToast(`語音合成失敗：${data.error || '請檢查網路連線'}`, 'error');
-        console.error(data);
-      }
-    } catch (err) {
-      showToast(`合成請求錯誤：${err.message}`, 'error');
-    }
-  }
-
-  function playAudio(filename) {
-    const audioUrl = `/audio/${filename}?t=${Date.now()}`;
-    let existingPlayer = document.getElementById('podcastAudioPlayer');
-    if (!existingPlayer) {
-      const wrapper = document.createElement('div');
-      wrapper.id = 'podcastAudioPlayerWrapper';
-      wrapper.style.cssText = 'background: #f0fdf4; border: 2px solid #10b981; padding: 10px 16px; border-radius: 12px; margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; width: 100%; box-sizing: border-box;';
-      wrapper.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 1.3rem;">🎧</span>
-          <div>
-            <div style="font-weight: 800; font-size: 0.92rem; color: #065f46;">已生成 Podcast 試聽音訊</div>
-            <div style="font-size: 0.78rem; color: #047857;" id="audioPlayerFileName">${filename}</div>
-          </div>
-        </div>
-        <audio id="podcastAudioPlayer" controls autoplay style="height: 36px; outline: none; max-width: 100%;"></audio>
-      `;
-      dom.scriptLinesContainer.parentElement.insertBefore(wrapper, dom.scriptLinesContainer);
-      existingPlayer = document.getElementById('podcastAudioPlayer');
-    }
-    document.getElementById('audioPlayerFileName').textContent = filename;
-    existingPlayer.src = audioUrl;
-    existingPlayer.play();
-  }
-
-  // ==========================================
-  // 11. 已存檔講稿庫 (包含直接下載 Word .docx 功能)
-  // ==========================================
-  async function fetchSavedScripts() {
-    try {
-      const res = await fetch('/api/scripts');
-      const data = await res.json();
-      if (data.success) {
-        state.savedScripts = data.scripts || [];
-        renderSavedScriptsList();
-      }
-    } catch (err) {
-      console.error('獲取存檔失敗:', err);
-    }
+    showToast(`💾 講稿存檔成功！已更新至已存檔講稿庫！`, 'success');
   }
 
   function renderSavedScriptsList() {
+    if (!dom.savedScriptsList) return;
     dom.savedScriptsList.innerHTML = '';
     if (state.savedScripts.length === 0) {
       dom.savedScriptsList.innerHTML = `
@@ -1502,14 +1715,17 @@ if __name__ == '__main__':
         </div>
         <div style="display: flex; gap: 6px; flex-wrap: wrap;">
           <button class="btn-action" data-load-id="${script.id}">📖 載入編輯</button>
-          <a href="/api/download/${script.fileBaseName}.docx" class="btn-action warm" download style="text-decoration: none;">
-            📄 下載 Word (.docx)
-          </a>
+          <button class="btn-action warm" data-docx-id="${script.id}">📄 下載 Word (.docx)</button>
         </div>
       `;
 
       row.querySelector('[data-load-id]').addEventListener('click', () => {
         loadSavedScript(script);
+      });
+
+      row.querySelector('[data-docx-id]').addEventListener('click', () => {
+        loadSavedScript(script);
+        generateAndDownloadDocx();
       });
 
       dom.savedScriptsList.appendChild(row);
@@ -1527,7 +1743,7 @@ if __name__ == '__main__':
   }
 
   // ==========================================
-  // 12. 通用輔助函式 (Toast, Escape)
+  // 13. 通用輔助函式
   // ==========================================
   let toastTimer = null;
   function showToast(msg, type = 'info') {

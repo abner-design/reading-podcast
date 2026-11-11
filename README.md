@@ -59,10 +59,10 @@
 
 ---
 
-### 🔗 常用網址模式 (提供給不同對象)
+### 🔗 不同使用者專屬網址區隔 (最推薦直接使用獨立網址)
 
 | 對象 | 專屬網址格式 | 說明 |
 | :--- | :--- | :--- |
-| **學生推薦專用** | `https://<您的帳號>.github.io/reading-podcast/?mode=student` | 隱藏工作台入口，防止學生誤入後台 |
-| **教師直接進後台** | `https://<您的帳號>.github.io/reading-podcast/?mode=studio` | 自動以教師權限開啟講稿工作台 |
-| **標準入口** | `https://<您的帳號>.github.io/reading-podcast/` | 預設首頁，點工作台需輸入密碼 `115` |
+| **🎒 學生推薦專用網址**<br>*(最推薦發給學生)* | `https://<您的帳號>.github.io/reading-podcast/student.html`<br>或 `.../?mode=student` | **物理完全隔絕後台**：頁面內完全無教師工作台分頁與密碼彈窗，附帶注音工具與即時鏡射列，安心讓學生自由使用！ |
+| **🎙️ 課研組教師工作台**<br>*(教師/管理員使用)* | `https://<您的帳號>.github.io/reading-podcast/teacher.html`<br>或 `.../?mode=teacher` 或 `.../?mode=studio` | **直接免密進入後台**：自動開啟 Podcast 講稿工作台，包含一鍵複製學生網址、收件匣審閱、Word/Python 匯出功能。 |
+| **🏠 標準入口首頁** | `https://<您的帳號>.github.io/reading-podcast/` | 綜合入口，支援雙分頁切換（進入教師工作台需輸入密碼 `115`）。 |

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>喜閱龍的圖書館奇遇 - 國小好書推薦與 Podcast 講稿平台 (GitHub Pages 版)</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="images/reading-dragon.png" type="image/png">
+</head>
+<body>
+
+  <!-- ==========================================
+       頂部導覽列
+       ========================================== -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="#" class="header-brand" id="brandLink">
+        <img src="images/reading-dragon.png" alt="喜閱龍吉祥物" class="brand-mascot">
+        <div class="brand-title-box">
+          <h1 id="siteTitle">喜閱龍好書推薦平台</h1>
+          <p id="siteSubtitle">新北市龍埔國小 閱讀推廣 Podcast 節目製作系統</p>
+        </div>
+      </a>
+
+      <div class="header-actions">
+        <!-- 注音開關切換器 -->
+        <div class="zhuyin-switch-container" id="zhuyinToggleBtn" title="點擊切換注音模式">
+          <span class="zhuyin-switch-label" id="zhuyinSwitchText">
+            🔤 注音模式：開啟
+          </span>
+          <div class="switch-pill"></div>
+        </div>
+
+        <!-- 平台模式分頁 (學生推薦專用) -->
+        <nav class="tab-nav">
+          <button class="tab-btn active" data-tab="recommendTab" id="tabBtnRecommend" style="cursor: default;">
+            🎈 我要推薦好書
+          </button>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       主內容容器
+       ========================================== -->
+  <main class="main-content">
+
+    <!-- ──────────────────────────────────────────
+         分頁一：學童推薦好書專區 (Student Tab)
+         ────────────────────────────────────────── -->
+    <section class="tab-view active" id="recommendTab">
+      
+      <!-- 英雄橫幅 (Hero Banner) -->
+      <div class="hero-banner">
+        <div class="hero-text">
+          <h2 id="bannerHeading">嗨～全臺灣最厲害的小讀者們！</h2>
+          <p id="bannerDesc">
+            你看過什麼超好看、超有趣的書嗎？快寫「推薦信」給喜閱龍和大樹哥哥！<br>
+            寫下這本書的特色與你最愛的情節，喜閱龍會在 Podcast 節目裡大聲念出來，推薦給全校小朋友喔！
+          </p>
+        </div>
+        <img src="images/reading-dragon.png" alt="喜閱龍閱讀中" class="hero-dragon-img">
+      </div>
+
+      <!-- 雙欄佈局：左表單、右即時注音預覽 -->
+      <div class="recommend-layout">
+        
+        <!-- 左側：直接輸入推薦表單 -->
+        <div class="card form-card">
+          <h3 class="card-title">
+            <span>📝</span>
+            <span id="formTitle">填寫好書推薦信</span>
+          </h3>
+
+          <form id="recommendForm">
+            <!-- 推薦人姓名與班級 -->
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="studentName" id="lblStudentName">
+                  推薦小達人姓名 <span class="label-required">*</span>
+                </label>
+                <input type="text" id="studentName" class="input-field" placeholder="例如：林小晨、小丸子" required>
+                <div class="form-hint" id="hintStudentName">請填寫你的真實姓名或想在節目播出的綽號</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="gradeClass" id="lblGradeClass">
+                  年級與班級 <span class="label-required">*</span>
+                </label>
+                <input type="text" id="gradeClass" class="input-field" placeholder="例如：三年二班、四年五班" required>
+                <div class="form-hint" id="hintGradeClass">讓喜閱龍知道你是哪一班的閱讀好朋友</div>
+              </div>
+            </div>
+
+            <!-- 書名與作者 -->
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="bookTitle" id="lblBookTitle">
+                  推薦好書名稱 <span class="label-required">*</span>
+                </label>
+                <input type="text" id="bookTitle" class="input-field" placeholder="例如：小妖怪系列12：動物界的小妖怪" required>
+                <div class="form-hint" id="hintBookTitle">封面上的完整書名</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="author" id="lblAuthor">
+                  書籍作者 / 繪者
+                </label>
+                <input type="text" id="author" class="input-field" placeholder="例如：角野榮子 / 佐佐木洋子">
+                <div class="form-hint" id="hintAuthor">不知道也可以先空著喔</div>
+              </div>
+            </div>
+
+            <!-- 書籍特色 (核心欄位) -->
+            <div class="form-group">
+              <label class="form-label" for="bookFeatures" id="lblBookFeatures">
+                這本書最大的特色是什麼？ <span class="label-required">*</span>
+              </label>
+              <textarea id="bookFeatures" class="textarea-field" placeholder="例如：故事超級幽默搞笑又很溫馨！每一隻小妖怪都有搞笑的弱點，而且插圖顏色好漂亮、表情超生動，讓人忍不住一口氣看完！" required></textarea>
+              <div class="form-hint" id="hintBookFeatures">寫寫看這本書哪裡最吸引你？有什麼特別厲害的地方？</div>
+
+              <!-- 快捷靈感標籤 (點擊可直接加到特色) -->
+              <div class="tag-container" id="featureTagList">
+                <!-- 由 JavaScript 自動產生 -->
+              </div>
+            </div>
+
+            <!-- 最喜歡的情節或金句 -->
+            <div class="form-group">
+              <label class="form-label" for="favoriteQuote" id="lblFavoriteQuote">
+                你最喜歡的情節、角色或一句話？
+              </label>
+              <textarea id="favoriteQuote" class="textarea-field" style="min-height: 80px;" placeholder="例如：最喜歡「洗乾淨小妖怪」偷偷把大家的衣服拿去洗，結果縮水變小的那一段，笑到肚子痛！"></textarea>
+              <div class="form-hint" id="hintFavoriteQuote">喜閱龍和大樹哥哥會在廣播劇中幫你演出來喔！</div>
+            </div>
+
+            <!-- 想對喜閱龍與大樹哥哥說的話 -->
+            <div class="form-group">
+              <label class="form-label" for="studentMessage" id="lblStudentMessage">
+                想對喜閱龍和大樹哥哥說的話 / 推薦原因
+              </label>
+              <input type="text" id="studentMessage" class="input-field" placeholder="例如：希望喜閱龍在大樹哥哥的節目上念出我的推薦信！">
+            </div>
+
+            <!-- 送出按鈕 -->
+            <div class="submit-btn-box">
+              <button type="submit" class="btn-primary" id="btnSubmitRecommendation">
+                <span>🚀</span> <span id="btnSubmitText">送出推薦信給喜閱龍</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 右側：即時注音推薦卡片 (Live Ruby Preview Card) -->
+        <div class="preview-column">
+          <div class="preview-sticky">
+            <div class="preview-card">
+              <div class="preview-badge" id="previewBadgeText">✨ 即時注音預覽卡片</div>
+              
+              <!-- 喜閱龍對話氣泡 -->
+              <div class="preview-dragon-dialog">
+                <img src="images/reading-dragon.png" alt="喜閱龍" class="dialog-avatar">
+                <div class="dialog-bubble" id="dragonEncourageBubble">
+                  「哇！你在欄位裡打的字，我會自動幫你加上注音符號喔！快看看好不好看～」
+                </div>
+              </div>
+
+              <!-- 成果卡片內容區 -->
+              <div class="preview-content-box" id="previewContentBox">
+                <div class="preview-book-title" id="previewBookTitle">
+                  《請在左邊輸入書名》
+                </div>
+                <div class="preview-meta" id="previewMeta">
+                  推薦小達人：等待輸入中...
+                </div>
+
+                <div class="preview-section-title" id="lblPreviewFeatures">【書籍特色】</div>
+                <div class="preview-section-body" id="previewFeatures">
+                  在左邊輸入書籍特色後，這裡會立即顯示帶有注音的漂亮文字喔！
+                </div>
+
+                <div class="preview-section-title" id="lblPreviewQuote" style="margin-top: 14px;">【最愛的情節或金句】</div>
+                <div class="preview-section-body" id="previewQuote">
+                  還沒填寫最愛的情節唷～
+                </div>
+
+                <div class="preview-section-title" id="lblPreviewMessage" style="margin-top: 14px;">【給喜閱龍的悄悄話】</div>
+                <div class="preview-section-body" id="previewMessage">
+                  （期待收到你的悄悄話！）
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+          <!-- 頁尾宣告與教師工作台快速通道 -->
+    <footer style="text-align: center; padding: 24px 10px 40px; color: #94a3b8; font-size: 0.85rem;">
+      <p style="margin-bottom: 6px;">🏫 新北市龍埔國小 閱讀推廣系列 ｜ 《喜閱龍的3分鐘圖書館奇遇》</p>
+      <p>
+        <a href="teacher.html" style="color: #64748b; text-decoration: none; font-weight: 600; padding: 4px 12px; border-radius: 12px; background: #f1f5f9; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; gap: 4px;">
+          <span>🔒</span> 課研組教師專用工作台
+        </a>
+      </p>
+    </footer>
+  </main>
+
+  <!-- 教師工作台權限驗證彈窗 (避免學童誤入) -->
+  <!-- ========================================== -->
+  <!-- 浮動注音符號小工具 (隨螢幕移動，手機/平板免上下滑動) -->
+  <!-- ========================================== -->
+  <div id="floatingZhuyinContainer" class="floating-zhuyin-container" style="display: none;">
+    <!-- 頂部列：切換目標欄位 + 倒退/空格/收合按鈕 -->
+    <div class="fzhuyin-header">
+      <div class="fzhuyin-target-wrap">
+        <span class="fzhuyin-target-tag">📍 輸入目標</span>
+        <div class="fzhuyin-field-pills" id="fzhuyinFieldPills">
+          <button type="button" class="fzhuyin-pill active" data-field="bookFeatures">🌟 特色</button>
+          <button type="button" class="fzhuyin-pill" data-field="bookTitle">📖 書名</button>
+          <button type="button" class="fzhuyin-pill" data-field="author">✍️ 作者</button>
+          <button type="button" class="fzhuyin-pill" data-field="favoriteQuote">💬 名句</button>
+          <button type="button" class="fzhuyin-pill" data-field="studentMessage">💌 留言</button>
+          <button type="button" class="fzhuyin-pill" data-field="studentName">👤 姓名</button>
+        </div>
+      </div>
+      <div class="fzhuyin-actions">
+        <button type="button" class="fzhuyin-action-btn" id="fzhuyinBackspaceBtn" title="倒退刪除一個字或符號">⌫ 倒退</button>
+        <button type="button" class="fzhuyin-action-btn" id="fzhuyinSpaceBtn" title="插入空格">␣ 空格</button>
+        <button type="button" class="fzhuyin-action-btn fzhuyin-close-btn" id="fzhuyinCloseBtn" title="收合注音工具">✕ 收合</button>
+      </div>
+    </div>
+
+    <!-- 即時鏡射文字列：解決孩子上下滑動痛點，邊打邊看 -->
+    <div class="fzhuyin-mirror-box">
+      <div class="fzhuyin-mirror-header">
+        <span class="mirror-field-name" id="fzhuyinCurrentFieldName">【這本書最有特色或吸引人的地方】</span>
+        <span class="mirror-hint">即時輸入預覽（免滑動）：</span>
+      </div>
+      <div class="fzhuyin-mirror-content" id="fzhuyinMirrorContent">
+        <span class="fzhuyin-placeholder">（點選下方注音符號即可直接輸入）</span>
+      </div>
+    </div>
+
+    <!-- 注音鍵盤區 (聲母、介音與韻母、聲調、常用標點) -->
+    <div class="fzhuyin-body">
+      <div class="fzhuyin-keypad" id="fzhuyinKeypad">
+        <!-- 由 JavaScript 動態生成按鍵 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 懸浮快捷按鈕 (FAB)：常駐畫面右下角，隨點隨開 -->
+  <button type="button" id="floatingZhuyinFab" class="floating-zhuyin-fab" title="點擊開啟/收合 ㄅㄆㄇ浮動注音鍵盤">
+    <span class="fab-icon">⌨️</span>
+    <span class="fab-text">ㄅㄆㄇ 注音工具</span>
+  </button>
+
+  <!-- 浮動提示元件 (Toast) -->
+  <div class="toast" id="toastBox">
+    <span id="toastIcon">✨</span>
+    <span id="toastMessage">操作成功</span>
+  </div>
+
+  <!-- 引用外部函式庫 (均包含於本專案中，支援純前端與離線運作) -->
+  <script src="lib/pinyin-pro.js"></script>
+  <script src="lib/zhuyin-engine.js"></script>
+  <script src="lib/docx.umd.js"></script>
+  <script src="lib/FileSaver.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
