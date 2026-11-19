@@ -226,7 +226,8 @@
         <div class="card inbox-card-panel">
           <div class="card-title" style="justify-content: space-between; flex-wrap: wrap;">
             <span>📬 收到的小朋友推薦</span>
-            <div style="display: flex; gap: 6px;">
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button class="btn-action primary" id="btnRefreshCloud" title="立即從 Google 試算表同步最新收到的推薦信">🔄 同步雲端</button>
               <button class="btn-action" id="btnExportData" title="匯出所有推薦信資料備份">💾 備份</button>
               <button class="btn-action" id="btnImportData" title="匯入推薦信備份檔">📥 匯入</button>
             </div>
@@ -372,6 +373,6 @@
   <script src="lib/zhuyin-engine.js"></script>
   <script src="lib/docx.umd.js"></script>
   <script src="lib/FileSaver.min.js"></script>
-  <script src="js/app.js?v=20261112"></script>
+  <script src="js/app.js?v=20261119c"></script>
 </body>
 </html>
