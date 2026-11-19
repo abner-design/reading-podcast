@@ -6,6 +6,9 @@
 (function () {
   'use strict';
 
+  // Google 試算表雲端同步 API (Apps Script 網頁應用程式)
+  const CLOUD_API_URL = 'https://script.google.com/macros/s/AKfycbwd1eiegMj8s0bJ2jurY24nugNWTK_NPnUtOzbqwSVuYamvzuS7ySYj0vWQDdD12R9jgA/exec';
+
   // 本機儲存金鑰
   const STORAGE_KEY_SUBMISSIONS = 'dragon_reading_submissions_v1';
   const STORAGE_KEY_SCRIPTS = 'dragon_reading_saved_scripts_v1';
@@ -160,6 +163,9 @@
 
     // Studio 元素
     inboxList: document.getElementById('inboxList'),
+    btnRefreshCloud: document.getElementById('btnRefreshCloud'),
+    btnSubmitRecommendation: document.getElementById('btnSubmitRecommendation'),
+    btnSubmitText: document.getElementById('btnSubmitText'),
     btnExportData: document.getElementById('btnExportData'),
     btnImportData: document.getElementById('btnImportData'),
     importFileInput: document.getElementById('importFileInput'),
@@ -197,6 +203,13 @@
 
     loadSubmissionsFromStorage();
     loadSavedScriptsFromStorage();
+
+    if (dom.btnRefreshCloud) {
+      dom.btnRefreshCloud.addEventListener('click', () => syncSubmissionsFromCloud(true));
+    }
+    if (dom.inboxList && CLOUD_API_URL) {
+      syncSubmissionsFromCloud(false);
+    }
   }
 
   // ==========================================
@@ -759,8 +772,8 @@
     dom.previewMessage.innerHTML = ZhuyinEngine.toRubyHtml(msg);
   }
 
-  // 學生表單送出 -> 儲存至瀏覽器 LocalStorage
-  function handleFormSubmit(e) {
+  // 學生表單送出 -> 同步上傳至 Google 試算表雲端 + 備份至 LocalStorage
+  async function handleFormSubmit(e) {
     e.preventDefault();
 
     const now = new Date();
@@ -776,10 +789,52 @@
       timestamp: now.toISOString()
     };
 
+    const submitBtn = dom.btnSubmitRecommendation;
+    const submitTextEl = dom.btnSubmitText;
+    const origHtml = submitTextEl ? submitTextEl.innerHTML : '';
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.style.opacity = '0.7';
+    }
+    if (submitTextEl) {
+      submitTextEl.textContent = '正在傳送推薦信給喜閱龍...';
+    }
+
+    let cloudSynced = false;
+    if (CLOUD_API_URL) {
+      try {
+        const res = await fetch(CLOUD_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'create', data: sub })
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          cloudSynced = true;
+        }
+      } catch (err) {
+        console.error('雲端傳送失敗，改為本機暫存:', err);
+      }
+    }
+
     state.submissions.unshift(sub);
     saveSubmissionsToStorage();
 
-    showToast('🎉 太棒了！推薦信已送達喜閱龍！', 'success');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = '';
+    }
+    if (submitTextEl) {
+      submitTextEl.innerHTML = origHtml;
+    }
+
+    if (cloudSynced) {
+      showToast('🎉 太棒了！推薦信已成功傳送給喜閱龍！', 'success');
+    } else {
+      showToast('⚠️ 網路暫時不穩，推薦信已先暫存在本機，請檢查網路！', 'error');
+    }
+
     dom.recommendForm.reset();
     renderLivePreview();
     updateFloatingMirror();
@@ -787,19 +842,55 @@
   }
 
   // ==========================================
-  // 7. 本機資料管理 (LocalStorage ＆ 匯出備份/匯入)
+  // 7. 雲端同步與本機資料管理 (Google 試算表 + LocalStorage)
   // ==========================================
+  async function syncSubmissionsFromCloud(showNotify = false) {
+    if (!CLOUD_API_URL) return;
+
+    const btn = dom.btnRefreshCloud;
+    const origText = btn ? btn.textContent : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ 同步中...';
+    }
+
+    try {
+      const res = await fetch(`${CLOUD_API_URL}?t=${Date.now()}`);
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.submissions)) {
+        state.submissions = data.submissions;
+        saveSubmissionsToStorage();
+        renderInboxList();
+        if (showNotify) {
+          showToast(`☁️ 雲端同步完成！共收到 ${state.submissions.length} 封推薦信`, 'success');
+        }
+      } else if (showNotify) {
+        showToast('⚠️ 雲端回傳格式異常，請稍後再試', 'error');
+      }
+    } catch (err) {
+      console.error('雲端同步失敗:', err);
+      if (showNotify) {
+        showToast('⚠️ 無法連線至雲端試算表，目前顯示本機暫存資料', 'error');
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = origText || '🔄 同步雲端';
+      }
+    }
+  }
+
   function loadSubmissionsFromStorage() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY_SUBMISSIONS);
       if (raw) {
         state.submissions = JSON.parse(raw);
       } else {
-        state.submissions = [...INITIAL_SEED_SUBMISSIONS];
+        state.submissions = CLOUD_API_URL ? [] : [...INITIAL_SEED_SUBMISSIONS];
         saveSubmissionsToStorage();
       }
     } catch (e) {
-      state.submissions = [...INITIAL_SEED_SUBMISSIONS];
+      state.submissions = CLOUD_API_URL ? [] : [...INITIAL_SEED_SUBMISSIONS];
     }
     if (dom.inboxCountBadge) dom.inboxCountBadge.textContent = state.submissions.length;
     if (dom.inboxList) renderInboxList();
@@ -845,7 +936,7 @@
     }
   }
 
-  function removeSubmissionById(id) {
+  async function removeSubmissionById(id) {
     const idx = state.submissions.findIndex(s => s.id === id);
     if (idx === -1) return;
 
@@ -867,6 +958,19 @@
 
     renderInboxList();
     showToast(`🗑️ 已移除《${escapeHtml(removedItem.bookTitle || '推薦信')}》`, 'info');
+
+    // 同步標記 Google 試算表為「已移除」
+    if (CLOUD_API_URL) {
+      try {
+        await fetch(CLOUD_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'delete', id: id })
+        });
+      } catch (err) {
+        console.error('雲端同步移除失敗:', err);
+      }
+    }
   }
 
   function renderInboxList() {
